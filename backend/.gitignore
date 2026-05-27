@@ -1,0 +1,25 @@
+#Python cache
+__pychache__/ 
+*.py[cod]
+*.pyo 
+*.pyd 
+
+# Virtual environments 
+.venv/ 
+venv 
+
+#Environment varables 
+.env 
+
+# Test/cache 
+.pytest_chache/
+.mypy_cache/ 
+.ruff_cache/ 
+
+# OS-specific junk 
+.DS_Store 
+Thumbs.db 
+
+# IDE 
+.vscode/
+.idea/
