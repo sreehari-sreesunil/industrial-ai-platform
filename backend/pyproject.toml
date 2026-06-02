@@ -10,6 +10,9 @@ python = "^3.12"
 fastapi = "^0.115.0" 
 uvicorn = { extras = ["standard"], version = "^0.30.0"}
 pydantic-settings = "^2.14.1"
+sqlalchemy = "^2.0.50"
+psycopg = {extras = ["binary"], version = "^3.3.4"}
+alembic = "^1.18.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0" 
