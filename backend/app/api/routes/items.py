@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.crud.item import create_item, get_item_by_id, get_items
+from app.services.item import (
+    create_item_service,
+    get_item_by_id_service,
+    get_items_service,
+)
 from app.db.session import get_db
 from app.schemas.item import ItemCreate, ItemResponse
 
@@ -14,7 +18,10 @@ def create_item_endpoint(
     item: ItemCreate,
     db: Session = Depends(get_db),
 ) -> ItemResponse:
-    created_item = create_item(db=db, item_data=item)
+    created_item = create_item_service(
+        db=db,
+        item_data=item,
+    )
 
     return created_item
 
@@ -23,7 +30,7 @@ def create_item_endpoint(
 def get_items_endpoint(
     db: Session = Depends(get_db),
 ) -> list[ItemResponse]:
-    items = get_items(db=db)
+    items = get_items_service(db=db)
 
     return items
 
@@ -33,7 +40,10 @@ def get_item_endpoint(
     item_id: int,
     db: Session = Depends(get_db),
 ) -> ItemResponse:
-    item = get_item_by_id(db=db, item_id=item_id)
+    item = get_item_by_id_service(
+        db=db,
+        item_id=item_id,
+    )
 
     if item is None:
         raise HTTPException(
