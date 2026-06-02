@@ -40,3 +40,14 @@ def get_asset_types(
     result = db.execute(statement)
 
     return list(result.scalars().all())
+
+
+def get_asset_type_by_id(
+    db: Session,
+    asset_type_id: int,
+) -> AssetType | None:
+    statement = select(AssetType).where(AssetType.id == asset_type_id)
+
+    result = db.execute(statement)
+
+    return result.scalar_one_or_none()

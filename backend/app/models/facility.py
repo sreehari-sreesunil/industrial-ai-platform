@@ -20,3 +20,4 @@ class Facility(Base):
     )
 
     organization = relationship("Organization")
+    assets = relationship("Asset")

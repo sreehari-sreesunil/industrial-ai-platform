@@ -12,7 +12,9 @@ from app.api.routes.facilities import (
 from app.api.routes.asset_types import (
     router as asset_types_router,
 )
-
+from app.api.routes.assets import (
+    router as assets_router,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -22,3 +24,4 @@ api_router.include_router(items_router)
 api_router.include_router(organizations_router)
 api_router.include_router(facilities_router)
 api_router.include_router(asset_types_router)
+api_router.include_router(assets_router)

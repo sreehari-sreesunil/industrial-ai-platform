@@ -29,3 +29,14 @@ def get_facilities(
     result = db.execute(statement)
 
     return list(result.scalars().all())
+
+
+def get_facility_by_id(
+    db: Session,
+    facility_id: int,
+) -> Facility | None:
+    statement = select(Facility).where(Facility.id == facility_id)
+
+    result = db.execute(statement)
+
+    return result.scalar_one_or_none()
