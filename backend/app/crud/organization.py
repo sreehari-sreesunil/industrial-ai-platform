@@ -39,3 +39,14 @@ def get_organizations(
     result = db.execute(statement)
 
     return list(result.scalars().all())
+
+
+def get_organization_by_id(
+    db: Session,
+    organization_id: int,
+) -> Organization | None:
+    statement = select(Organization).where(Organization.id == organization_id)
+
+    result = db.execute(statement)
+
+    return result.scalar_one_or_none()

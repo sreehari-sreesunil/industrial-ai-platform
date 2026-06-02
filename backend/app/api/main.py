@@ -6,6 +6,13 @@ from app.api.routes.items import router as items_router
 from app.api.routes.organizations import (
     router as organizations_router,
 )
+from app.api.routes.facilities import (
+    router as facilities_router,
+)
+from app.api.routes.asset_types import (
+    router as asset_types_router,
+)
+
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -13,3 +20,5 @@ api_router.include_router(health_router)
 api_router.include_router(system_router)
 api_router.include_router(items_router)
 api_router.include_router(organizations_router)
+api_router.include_router(facilities_router)
+api_router.include_router(asset_types_router)
