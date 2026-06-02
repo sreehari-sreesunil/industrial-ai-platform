@@ -30,3 +30,14 @@ def get_assets(
     result = db.execute(statement)
 
     return list(result.scalars().all())
+
+
+def get_asset_by_id(
+    db: Session,
+    asset_id: int,
+) -> Asset | None:
+    statement = select(Asset).where(Asset.id == asset_id)
+
+    result = db.execute(statement)
+
+    return result.scalar_one_or_none()

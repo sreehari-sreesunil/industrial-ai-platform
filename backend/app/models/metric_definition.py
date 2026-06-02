@@ -4,8 +4,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Asset(Base):
-    __tablename__ = "assets"
+class MetricDefinition(Base):
+    __tablename__ = "metric_definitions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -14,18 +14,23 @@ class Asset(Base):
         nullable=False,
     )
 
-    facility_id: Mapped[int] = mapped_column(
-        ForeignKey("facilities.id"),
+    unit: Mapped[str] = mapped_column(
+        String(50),
         nullable=False,
     )
+
+    data_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    min_value: Mapped[float | None]
+
+    max_value: Mapped[float | None]
 
     asset_type_id: Mapped[int] = mapped_column(
         ForeignKey("asset_types.id"),
         nullable=False,
     )
 
-    facility = relationship("Facility")
-
     asset_type = relationship("AssetType")
-
-    telemetry_records = relationship("TelemetryRecord")

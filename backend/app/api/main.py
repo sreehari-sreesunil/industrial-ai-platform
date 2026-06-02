@@ -15,6 +15,13 @@ from app.api.routes.asset_types import (
 from app.api.routes.assets import (
     router as assets_router,
 )
+from app.api.routes.telemetry import (
+    router as telemetry_router,
+)
+from app.api.routes.metric_definitions import (
+    router as metric_definitions_router,
+)
+
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -25,3 +32,5 @@ api_router.include_router(organizations_router)
 api_router.include_router(facilities_router)
 api_router.include_router(asset_types_router)
 api_router.include_router(assets_router)
+api_router.include_router(telemetry_router)
+api_router.include_router(metric_definitions_router)

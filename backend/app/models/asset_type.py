@@ -20,3 +20,4 @@ class AssetType(Base):
         nullable=True,
     )
     assets = relationship("Asset")
+    metric_definitions = relationship("MetricDefinition")
