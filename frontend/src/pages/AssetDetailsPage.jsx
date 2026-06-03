@@ -1,5 +1,15 @@
+import { useParams } from "react-router-dom";
+
 function AssetDetailsPage() {
-  return <h1>Asset Details Page</h1>;
+  const { id } = useParams();
+
+  return (
+    <div>
+      <h1>Asset Details</h1>
+
+      <p>Asset ID: {id}</p>
+    </div>
+  );
 }
 
 export default AssetDetailsPage;
