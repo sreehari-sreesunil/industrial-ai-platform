@@ -1,15 +1,24 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
+from datetime import datetime
 from app.crud.asset import get_asset_by_id
 from app.crud.metric_definition import (
     get_metric_definitions_by_asset_type,
 )
 from app.crud.telemetry import (
     create_telemetry_record,
+    get_latest_telemetry_by_asset,
+    get_telemetry_by_asset,
+    get_telemetry_metric_stats,
 )
+
 from app.schemas.telemetry import (
     TelemetryIngest,
+)
+from app.crud.telemetry import (
+    create_telemetry_record,
+    get_latest_telemetry_by_asset,
+    get_telemetry_by_asset,
 )
 
 
@@ -82,3 +91,91 @@ def ingest_telemetry_service(
         db=db,
         telemetry_data=telemetry_data,
     )
+
+def get_asset_telemetry_service(
+    db: Session,
+    asset_id: int,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+):
+    asset = get_asset_by_id(
+        db=db,
+        asset_id=asset_id,
+    )
+
+    if asset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Asset not found",
+        )
+
+    return get_telemetry_by_asset(
+        db=db,
+        asset_id=asset_id,
+        start_time=start_time,
+        end_time=end_time,
+    )
+
+def get_latest_telemetry_service(
+    db: Session,
+    asset_id: int,
+):
+    asset = get_asset_by_id(
+        db=db,
+        asset_id=asset_id,
+    )
+
+    if asset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Asset not found",
+        )
+
+    telemetry = get_latest_telemetry_by_asset(
+        db=db,
+        asset_id=asset_id,
+    )
+
+    if telemetry is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No telemetry found",
+        )
+
+    return telemetry
+
+def get_asset_metric_stats_service(
+    db: Session,
+    asset_id: int,
+    metric: str,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+):
+    asset = get_asset_by_id(
+        db=db,
+        asset_id=asset_id,
+    )
+
+    if asset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Asset not found",
+        )
+
+    avg_value, min_value, max_value, count = (
+        get_telemetry_metric_stats(
+            db=db,
+            asset_id=asset_id,
+            metric=metric,
+            start_time=start_time,
+            end_time=end_time,
+        )
+    )
+
+    return {
+        "metric": metric,
+        "avg": avg_value,
+        "min": min_value,
+        "max": max_value,
+        "count": count,
+    }
