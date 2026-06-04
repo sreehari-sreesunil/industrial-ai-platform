@@ -1,27 +1,43 @@
-import { createBrowserRouter } from "react-router-dom";
+import React from 'react';
+import { createBrowserRouter } from 'react-router-dom';
 
-import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardLayout from '../layouts/DashboardLayout.jsx';
 
-import HomePage from "../pages/HomePage";
-import AssetsPage from "../pages/AssetsPage";
-import AssetDetailsPage from "../pages/AssetDetailsPage";
+import HomePage from '../pages/HomePage.jsx';
+import AssetsPage from '../pages/AssetsPage.jsx';
+import AssetDetailsPage from '../pages/AssetDetailsPage.jsx';
+import MetadataRegistryPage from '../pages/MetadataRegistryPage.jsx';
+import LoginPage from '../pages/LoginPage.jsx';
+import ProtectedRoute from "../components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <DashboardLayout />,
-    children: [
+    path: '/login',
+    element: <LoginPage />,
+  },
+ {
+  path: '/',
+  element: (
+    <ProtectedRoute>
+      <DashboardLayout />
+    </ProtectedRoute>
+  ),
+  children: [
       {
-        index: true,
+        path: '',
         element: <HomePage />,
       },
       {
-        path: "assets",
+        path: 'assets',
         element: <AssetsPage />,
       },
       {
-        path: "assets/:id",
+        path: 'assets/:id',
         element: <AssetDetailsPage />,
+      },
+      {
+        path: 'registry',
+        element: <MetadataRegistryPage />,
       },
     ],
   },

@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import text
 from app.db.session import engine
@@ -29,9 +30,17 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Application shutting down")
 
-
-app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
-
+origins = [
+    "http://localhost:5173",
+]
+app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan,)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(api_router)
 
 

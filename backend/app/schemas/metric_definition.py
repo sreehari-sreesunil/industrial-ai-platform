@@ -15,6 +15,13 @@ class MetricDefinitionCreate(BaseModel):
 
     asset_type_id: int
 
+class AssetTypeNested(BaseModel):
+    id: int
+    name: str
+
+    model_config = {
+        "from_attributes": True,
+    }
 
 class MetricDefinitionResponse(BaseModel):
     id: int
@@ -25,7 +32,7 @@ class MetricDefinitionResponse(BaseModel):
     min_value: float | None
     max_value: float | None
 
-    asset_type_id: int
+    asset_type: AssetTypeNested
 
     model_config = {
         "from_attributes": True,

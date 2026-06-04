@@ -16,7 +16,9 @@ from app.schemas.telemetry import (
     TelemetryResponse,
     TelemetryStatsResponse,
 )
-
+from app.core.security import (
+    get_current_username,
+)
 
 router = APIRouter(
     prefix="/telemetry",
@@ -26,12 +28,15 @@ router = APIRouter(
 
 @router.post("/ingest")
 def ingest_telemetry_endpoint(
-    telemetry: TelemetryIngest,
+    telemetry_data: TelemetryIngest,
     db: Session = Depends(get_db),
+    username: str = Depends(
+        get_current_username
+    ),
 ):
     return ingest_telemetry_service(
         db=db,
-        telemetry_data=telemetry,
+        telemetry_data=telemetry_data,
     )
 
 @router.get(

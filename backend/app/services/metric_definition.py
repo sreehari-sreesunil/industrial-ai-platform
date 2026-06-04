@@ -24,5 +24,9 @@ def create_metric_definition_service(
 
 def get_metric_definitions_service(
     db: Session,
+    asset_type_id: int | None = None,
 ) -> list[MetricDefinition]:
-    return get_metric_definitions(db=db)
+    return get_metric_definitions(
+    db=db,
+    asset_type_id=asset_type_id,
+)

@@ -10,7 +10,12 @@ class Settings(BaseSettings):
     database_url: str = Field(
         default="postgresql+psycopg://postgres:postgres@localhost:5432/industrial_ai"
     )
+    secret_key: str
 
+    algorithm: str = "HS256"
+
+    access_token_expire_minutes: int = 60
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encodeing="utf-8",

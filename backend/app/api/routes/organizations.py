@@ -10,6 +10,9 @@ from app.services.organization import (
     create_organization_service,
     get_organizations_service,
 )
+from app.core.security import (
+    get_current_username,
+)
 
 router = APIRouter(
     prefix="/organizations",
@@ -24,6 +27,9 @@ router = APIRouter(
 def create_organization_endpoint(
     organization: OrganizationCreate,
     db: Session = Depends(get_db),
+    username: str = Depends(
+        get_current_username,
+    ),
 ) -> OrganizationResponse:
     return create_organization_service(
         db=db,

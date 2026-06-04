@@ -10,6 +10,9 @@ from app.services.asset import (
     create_asset_service,
     get_assets_service,
 )
+from app.core.security import (
+    get_current_username,
+)
 
 router = APIRouter(
     prefix="/assets",
@@ -24,6 +27,9 @@ router = APIRouter(
 def create_asset_endpoint(
     asset: AssetCreate,
     db: Session = Depends(get_db),
+    username: str = Depends(
+        get_current_username,
+    ),
 ) -> AssetResponse:
     return create_asset_service(
         db=db,

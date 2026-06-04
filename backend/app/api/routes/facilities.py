@@ -10,6 +10,9 @@ from app.services.facility import (
     create_facility_service,
     get_facilities_service,
 )
+from app.core.security import (
+    get_current_username,
+)
 
 router = APIRouter(
     prefix="/facilities",
@@ -24,6 +27,9 @@ router = APIRouter(
 def create_facility_endpoint(
     facility: FacilityCreate,
     db: Session = Depends(get_db),
+    username: str = Depends(
+        get_current_username,
+    ),
 ) -> FacilityResponse:
     return create_facility_service(
         db=db,

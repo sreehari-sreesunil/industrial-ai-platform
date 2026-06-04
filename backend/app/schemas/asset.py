@@ -10,12 +10,29 @@ class AssetCreate(BaseModel):
     facility_id: int
     asset_type_id: int
 
+class FacilityNested(BaseModel):
+    id: int
+    name: str
 
+    model_config = {
+        "from_attributes": True,
+    }
+
+
+class AssetTypeNested(BaseModel):
+    id: int
+    name: str
+
+    model_config = {
+        "from_attributes": True,
+    }
 class AssetResponse(BaseModel):
     id: int
     name: str
-    facility_id: int
-    asset_type_id: int
+
+    facility: FacilityNested
+
+    asset_type: AssetTypeNested
 
     model_config = {
         "from_attributes": True,
