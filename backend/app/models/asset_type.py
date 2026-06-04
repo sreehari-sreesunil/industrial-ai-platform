@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
 
+
 class AssetType(Base):
     __tablename__ = "asset_types"
 

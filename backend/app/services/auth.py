@@ -25,12 +25,9 @@ def register_user_service(
     db: Session,
     user_data: UserRegister,
 ) -> User:
-
-    existing_user = (
-        get_user_by_username(
-            db=db,
-            username=user_data.username,
-        )
+    existing_user = get_user_by_username(
+        db=db,
+        username=user_data.username,
     )
 
     if existing_user is not None:
@@ -39,9 +36,7 @@ def register_user_service(
             detail="Username already exists",
         )
 
-    hashed_password = hash_password(
-        user_data.password
-    )
+    hashed_password = hash_password(user_data.password)
 
     return create_user(
         db=db,
@@ -49,11 +44,11 @@ def register_user_service(
         hashed_password=hashed_password,
     )
 
+
 def login_user_service(
     db: Session,
     user_data: UserLogin,
 ) -> TokenResponse:
-
     user = get_user_by_username(
         db=db,
         username=user_data.username,
@@ -76,11 +71,7 @@ def login_user_service(
             detail="Invalid credentials",
         )
 
-    access_token = create_access_token(
-        data={
-            "sub": user.username
-        }
-    )
+    access_token = create_access_token(data={"sub": user.username})
 
     return TokenResponse(
         access_token=access_token,

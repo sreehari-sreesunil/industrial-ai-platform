@@ -12,7 +12,6 @@ from app.services.telemetry import (
     ingest_telemetry_service,
 )
 from app.schemas.telemetry import (
-    TelemetryIngest,
     TelemetryResponse,
     TelemetryStatsResponse,
 )
@@ -30,14 +29,13 @@ router = APIRouter(
 def ingest_telemetry_endpoint(
     telemetry_data: TelemetryIngest,
     db: Session = Depends(get_db),
-    username: str = Depends(
-        get_current_username
-    ),
+    username: str = Depends(get_current_username),
 ):
     return ingest_telemetry_service(
         db=db,
         telemetry_data=telemetry_data,
     )
+
 
 @router.get(
     "/assets/{asset_id}",
@@ -56,6 +54,7 @@ def get_asset_telemetry_endpoint(
         end_time=end_time,
     )
 
+
 @router.get(
     "/assets/{asset_id}/latest",
     response_model=TelemetryResponse,
@@ -68,6 +67,7 @@ def get_latest_telemetry_endpoint(
         db=db,
         asset_id=asset_id,
     )
+
 
 @router.get(
     "/assets/{asset_id}/stats",

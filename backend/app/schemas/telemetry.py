@@ -10,6 +10,7 @@ class TelemetryIngest(BaseModel):
 
     payload: dict[str, float | int | bool]
 
+
 class TelemetryResponse(BaseModel):
     id: int
 
@@ -22,6 +23,7 @@ class TelemetryResponse(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
 
 class TelemetryStatsResponse(BaseModel):
     metric: str

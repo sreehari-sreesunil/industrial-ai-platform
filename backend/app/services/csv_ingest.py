@@ -12,26 +12,22 @@ from app.services.telemetry import (
     ingest_telemetry_service,
 )
 
+
 async def parse_csv_file(
     file: UploadFile,
 ):
     content = await file.read()
 
-    decoded_content = content.decode(
-        "utf-8"
-    )
+    decoded_content = content.decode("utf-8")
 
-    csv_stream = StringIO(
-        decoded_content
-    )
+    csv_stream = StringIO(decoded_content)
 
-    reader = csv.DictReader(
-        csv_stream
-    )
+    reader = csv.DictReader(csv_stream)
 
     rows = list(reader)
 
     return rows
+
 
 async def ingest_csv_telemetry(
     db: Session,
@@ -47,13 +43,9 @@ async def ingest_csv_telemetry(
 
     for index, row in enumerate(rows):
         try:
-            asset_id = int(
-                row["asset_id"]
-            )
+            asset_id = int(row["asset_id"])
 
-            timestamp = row.get(
-                "timestamp"
-            )
+            timestamp = row.get("timestamp")
 
             payload = {
                 key: float(value)
@@ -65,12 +57,10 @@ async def ingest_csv_telemetry(
                 ]
             }
 
-            telemetry_data = (
-                TelemetryIngest(
-                    asset_id=asset_id,
-                    timestamp=timestamp,
-                    payload=payload,
-                )
+            telemetry_data = TelemetryIngest(
+                asset_id=asset_id,
+                timestamp=timestamp,
+                payload=payload,
             )
 
             ingest_telemetry_service(
@@ -91,8 +81,6 @@ async def ingest_csv_telemetry(
     return {
         "total_rows": len(rows),
         "inserted_rows": inserted_rows,
-        "failed_rows": len(
-            failed_rows
-        ),
+        "failed_rows": len(failed_rows),
         "errors": failed_rows,
     }

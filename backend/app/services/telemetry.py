@@ -15,11 +15,6 @@ from app.crud.telemetry import (
 from app.schemas.telemetry import (
     TelemetryIngest,
 )
-from app.crud.telemetry import (
-    create_telemetry_record,
-    get_latest_telemetry_by_asset,
-    get_telemetry_by_asset,
-)
 
 
 def validate_payload(
@@ -27,7 +22,6 @@ def validate_payload(
     metric_definitions: dict,
 ) -> None:
     for metric_name, value in payload.items():
-
         if metric_name not in metric_definitions:
             raise HTTPException(
                 status_code=400,
@@ -92,6 +86,7 @@ def ingest_telemetry_service(
         telemetry_data=telemetry_data,
     )
 
+
 def get_asset_telemetry_service(
     db: Session,
     asset_id: int,
@@ -115,6 +110,7 @@ def get_asset_telemetry_service(
         start_time=start_time,
         end_time=end_time,
     )
+
 
 def get_latest_telemetry_service(
     db: Session,
@@ -144,6 +140,7 @@ def get_latest_telemetry_service(
 
     return telemetry
 
+
 def get_asset_metric_stats_service(
     db: Session,
     asset_id: int,
@@ -162,14 +159,12 @@ def get_asset_metric_stats_service(
             detail="Asset not found",
         )
 
-    avg_value, min_value, max_value, count = (
-        get_telemetry_metric_stats(
-            db=db,
-            asset_id=asset_id,
-            metric=metric,
-            start_time=start_time,
-            end_time=end_time,
-        )
+    avg_value, min_value, max_value, count = get_telemetry_metric_stats(
+        db=db,
+        asset_id=asset_id,
+        metric=metric,
+        start_time=start_time,
+        end_time=end_time,
     )
 
     return {

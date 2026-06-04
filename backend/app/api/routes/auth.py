@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 
-from app.models.user import User
 
 from app.schemas.auth import (
     UserRegister,
@@ -36,7 +35,6 @@ def register_user_endpoint(
     user_data: UserRegister,
     db: Session = Depends(get_db),
 ) -> dict:
-
     user = register_user_service(
         db=db,
         user_data=user_data,
@@ -56,13 +54,12 @@ def login_user_endpoint(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-
     user_login = UserLogin(
-    username=form_data.username,
-    password=form_data.password,
+        username=form_data.username,
+        password=form_data.password,
     )
 
     return login_user_service(
-    db=db,
-    user_data=user_login,
+        db=db,
+        user_data=user_login,
     )

@@ -25,9 +25,7 @@ SECRET_KEY = settings.secret_key
 
 ALGORITHM = settings.algorithm
 
-ACCESS_TOKEN_EXPIRE_MINUTES = (
-    settings.access_token_expire_minutes
-)
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
 pwd_context = CryptContext(
@@ -35,9 +33,8 @@ pwd_context = CryptContext(
     deprecated="auto",
 )
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/v1/auth/login"
-)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
 
 def hash_password(
     password: str,
@@ -54,22 +51,15 @@ def verify_password(
         hashed_password,
     )
 
+
 def create_access_token(
     data: dict,
 ) -> str:
-
     to_encode = data.copy()
 
-    expire = (
-        datetime.now(timezone.utc)
-        + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-    )
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    to_encode.update(
-        {"exp": expire}
-    )
+    to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(
         to_encode,
@@ -79,17 +69,13 @@ def create_access_token(
 
     return encoded_jwt
 
-def get_current_username(
-    token: str = Depends(
-        oauth2_scheme
-    ),
-) -> str:
 
-    credentials_exception = (
-        HTTPException(
-            status_code=401,
-            detail="Invalid authentication credentials",
-        )
+def get_current_username(
+    token: str = Depends(oauth2_scheme),
+) -> str:
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Invalid authentication credentials",
     )
 
     try:

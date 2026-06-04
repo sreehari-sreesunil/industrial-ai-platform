@@ -15,6 +15,7 @@ class MetricDefinitionCreate(BaseModel):
 
     asset_type_id: int
 
+
 class AssetTypeNested(BaseModel):
     id: int
     name: str
@@ -22,6 +23,7 @@ class AssetTypeNested(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
 
 class MetricDefinitionResponse(BaseModel):
     id: int

@@ -9,6 +9,7 @@ class FacilityCreate(BaseModel):
 
     organization_id: int
 
+
 class OrganizationNested(BaseModel):
     id: int
     name: str
@@ -16,6 +17,7 @@ class OrganizationNested(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
 
 class FacilityResponse(BaseModel):
     id: int

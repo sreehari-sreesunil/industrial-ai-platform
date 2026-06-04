@@ -27,6 +27,6 @@ def get_metric_definitions_service(
     asset_type_id: int | None = None,
 ) -> list[MetricDefinition]:
     return get_metric_definitions(
-    db=db,
-    asset_type_id=asset_type_id,
-)
+        db=db,
+        asset_type_id=asset_type_id,
+    )

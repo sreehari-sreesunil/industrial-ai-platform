@@ -9,10 +9,7 @@ def get_user_by_username(
     db: Session,
     username: str,
 ) -> User | None:
-
-    statement = select(User).where(
-        User.username == username
-    )
+    statement = select(User).where(User.username == username)
 
     result = db.execute(statement)
 
@@ -24,7 +21,6 @@ def create_user(
     username: str,
     hashed_password: str,
 ) -> User:
-
     user = User(
         username=username,
         hashed_password=hashed_password,

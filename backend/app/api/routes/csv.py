@@ -32,11 +32,9 @@ async def upload_telemetry_csv(
         get_current_username,
     ),
 ):
-    result = (
-        await ingest_csv_telemetry(
-            db=db,
-            file=file,
-        )
+    result = await ingest_csv_telemetry(
+        db=db,
+        file=file,
     )
 
     return result

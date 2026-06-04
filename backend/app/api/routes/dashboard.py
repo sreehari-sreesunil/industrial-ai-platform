@@ -28,9 +28,6 @@ router = APIRouter(
 def get_dashboard_overview_endpoint(
     db: Session = Depends(get_db),
 ) -> DashboardOverviewResponse:
-
-    return (
-        get_dashboard_overview_service(
-            db=db,
-        )
+    return get_dashboard_overview_service(
+        db=db,
     )

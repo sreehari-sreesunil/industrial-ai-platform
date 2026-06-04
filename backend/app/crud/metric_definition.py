@@ -33,16 +33,10 @@ def get_metric_definitions(
     db: Session,
     asset_type_id: int | None = None,
 ) -> list[MetricDefinition]:
-
-    statement = select(
-        MetricDefinition
-    )
+    statement = select(MetricDefinition)
 
     if asset_type_id is not None:
-        statement = statement.where(
-            MetricDefinition.asset_type_id
-            == asset_type_id
-        )
+        statement = statement.where(MetricDefinition.asset_type_id == asset_type_id)
 
     result = db.execute(statement)
 

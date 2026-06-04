@@ -5,9 +5,7 @@ from app.schemas.asset import (
 )
 
 
-class DashboardOverviewResponse(
-    BaseModel
-):
+class DashboardOverviewResponse(BaseModel):
     asset_count: int
 
     facility_count: int
@@ -16,9 +14,7 @@ class DashboardOverviewResponse(
 
     metric_definition_count: int
 
-    recent_assets: list[
-        AssetResponse
-    ]
+    recent_assets: list[AssetResponse]
 
     model_config = {
         "from_attributes": True,

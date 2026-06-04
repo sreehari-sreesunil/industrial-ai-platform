@@ -46,8 +46,8 @@ def get_metric_definitions_endpoint(
         default=None,
     ),
     db: Session = Depends(get_db),
-    ) -> list[MetricDefinitionResponse]:
+) -> list[MetricDefinitionResponse]:
     return get_metric_definitions_service(
-    db=db,
-    asset_type_id=asset_type_id,
-)
+        db=db,
+        asset_type_id=asset_type_id,
+    )

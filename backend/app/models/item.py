@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import Base
 
+
 class Item(Base):
     __tablename__ = "items"
 

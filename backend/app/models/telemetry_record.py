@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
 
+
 class TelemetryRecord(Base):
     __tablename__ = "telemetry_records"
 

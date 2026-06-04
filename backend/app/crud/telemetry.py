@@ -26,33 +26,27 @@ def create_telemetry_record(
 
     return record
 
+
 def get_telemetry_by_asset(
     db: Session,
     asset_id: int,
     start_time: datetime | None = None,
     end_time: datetime | None = None,
 ) -> list[TelemetryRecord]:
-    statement = select(TelemetryRecord).where(
-        TelemetryRecord.asset_id == asset_id
-    )
+    statement = select(TelemetryRecord).where(TelemetryRecord.asset_id == asset_id)
 
     if start_time is not None:
-        statement = statement.where(
-            TelemetryRecord.timestamp >= start_time
-        )
+        statement = statement.where(TelemetryRecord.timestamp >= start_time)
 
     if end_time is not None:
-        statement = statement.where(
-            TelemetryRecord.timestamp <= end_time
-        )
+        statement = statement.where(TelemetryRecord.timestamp <= end_time)
 
-    statement = statement.order_by(
-        TelemetryRecord.timestamp.asc()
-    )
+    statement = statement.order_by(TelemetryRecord.timestamp.asc())
 
     result = db.execute(statement)
 
     return list(result.scalars().all())
+
 
 def get_latest_telemetry_by_asset(
     db: Session,
@@ -60,18 +54,15 @@ def get_latest_telemetry_by_asset(
 ) -> TelemetryRecord | None:
     statement = (
         select(TelemetryRecord)
-        .where(
-            TelemetryRecord.asset_id == asset_id
-        )
-        .order_by(
-            TelemetryRecord.timestamp.desc()
-        )
+        .where(TelemetryRecord.asset_id == asset_id)
+        .order_by(TelemetryRecord.timestamp.desc())
         .limit(1)
     )
 
     result = db.execute(statement)
 
     return result.scalar_one_or_none()
+
 
 def get_telemetry_metric_stats(
     db: Session,
@@ -90,19 +81,13 @@ def get_telemetry_metric_stats(
         func.min(metric_value),
         func.max(metric_value),
         func.count(),
-    ).where(
-        TelemetryRecord.asset_id == asset_id
-    )
+    ).where(TelemetryRecord.asset_id == asset_id)
 
     if start_time is not None:
-        statement = statement.where(
-            TelemetryRecord.timestamp >= start_time
-        )
+        statement = statement.where(TelemetryRecord.timestamp >= start_time)
 
     if end_time is not None:
-        statement = statement.where(
-            TelemetryRecord.timestamp <= end_time
-        )
+        statement = statement.where(TelemetryRecord.timestamp <= end_time)
 
     result = db.execute(statement)
 

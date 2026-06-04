@@ -10,6 +10,7 @@ class AssetCreate(BaseModel):
     facility_id: int
     asset_type_id: int
 
+
 class FacilityNested(BaseModel):
     id: int
     name: str
@@ -26,6 +27,8 @@ class AssetTypeNested(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
+
 class AssetResponse(BaseModel):
     id: int
     name: str
