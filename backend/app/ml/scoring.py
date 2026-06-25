@@ -1,17 +1,17 @@
 """
-ML scoring and risk classification.
+ML scoring and risk classification. 
 
-Maps raw model output scores to human-readable risk levels and
-determines whether a score crosses the anomaly event threshold.
+Maps raw model output scores to human-readable risk levels and 
+determines whether a score crosses the anomaly event threshold. 
 
-Task-aware thresholds are used because the consequences of a given
+Task-aware thresholds are used because the cosequences of a given
 score differ by task:
 
-    anomaly_detection  — scores represent deviation from normal behavior
-                         (Isolation Forest, One-Class SVM output)
-
-    failure_prediction — scores represent probability of failure
-                         (XGBoost, Random Forest output)
+    anomaly_detection - scores represent deviation from normal behavior
+                        (IsolationForest output)
+    
+    failure_prediction -scores represent probability of failure
+                        (RandomForest output)
 
 A 0.7 anomaly score means high deviation from normal.
 A 0.7 failure probability means 70% chance of imminent failure.
@@ -24,6 +24,8 @@ Risk levels (ascending severity):
     high      → significant deviation, investigation warranted
     critical  → immediate operator attention required
 """
+
+
 
 import logging
 from dataclasses import dataclass
@@ -61,7 +63,7 @@ class TaskThresholds:
 
 
 # Anomaly detection thresholds
-# Isolation Forest and One-Class SVM output deviation scores.
+# Isolation Forest output deviation scores.
 # Industrial equipment can show elevated readings without being
 # truly anomalous — thresholds are set conservatively to reduce
 # false alarms that erode operator trust.
@@ -73,7 +75,7 @@ _ANOMALY_DETECTION_THRESHOLDS = TaskThresholds(
 )
 
 # Failure prediction thresholds
-# XGBoost and Random Forest output failure probabilities.
+# Random Forest output failure probabilities.
 # A 50% failure probability is operationally significant — lower
 # thresholds than anomaly detection because the consequence of
 # missing an impending failure is higher than a false anomaly alert.
@@ -108,13 +110,11 @@ RISK_LEVELS = ("low", "medium", "high", "critical")
 # These require inversion and normalization to 0-1 before classification
 _DECISION_FUNCTION_MODELS = frozenset({
     "IsolationForest",
-    "OneClassSVM",
 })
 
 # Model types that output predict_proba() scores (already 0-1)
 # These require no normalization — passed through directly
 _PROBA_MODELS = frozenset({
-    "XGBoost",
     "RandomForest",
 })
 
@@ -257,20 +257,19 @@ def normalize_score(
 
     Different model types produce different output ranges:
 
-    Isolation Forest / One-Class SVM — decision_function() output:
+    Isolation Forest — decision_function() output:
         Negative values = anomalous, positive = normal.
         More negative = more anomalous.
         Normalized by clipping to [-1, 1] then inverting to [0, 1].
 
-    XGBoost / Random Forest — predict_proba() output:
+    RandomForest — predict_proba() output:
         Already in 0-1 range. Passed through directly.
 
     Args:
         raw_score: Raw score directly from model.predict() or
             model.decision_function().
         model_type: Model type string from MLModel.model_type.
-            One of: "IsolationForest", "OneClassSVM",
-            "XGBoost", "RandomForest".
+            One of: "IsolationForest", "RandomForest".
 
     Returns:
         float: Normalized score between 0.0 and 1.0 where

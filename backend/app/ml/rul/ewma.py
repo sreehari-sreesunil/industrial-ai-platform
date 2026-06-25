@@ -1,18 +1,13 @@
 """
 EWMA (Exponentially Weighted Moving Average) RUL estimator.
 
-Standard tier RUL estimation. Smooths noisy health score history
-by weighting recent readings more heavily than older ones, then
-extrapolates the smoothed trend to estimate remaining useful life.
+Smooths noisy health score history by weighting recent readings
+more heavily than older ones, then extrapolates the smoothed trend
+to estimate remaining useful life.
 
 Confidence is always low (0.2-0.4) — EWMA is a rough estimate
 based on linear trend extrapolation. The frontend displays this
 with a clear "rough estimate" warning and low confidence indicator.
-
-Upgrade path:
-    standard tier  → EWMA (this module)
-    professional   → Weibull survival analysis (rul/weibull.py)
-    enterprise     → XGBoost RUL regression (rul/xgboost_rul.py)
 
 Frontend displays:
     ~127 days  (⚠ Rough estimate — low confidence)

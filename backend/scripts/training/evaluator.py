@@ -22,12 +22,12 @@ Metrics computed:
         - Calibration diagnostics
 
 Threshold optimization (failure_prediction only):
-    With severe class imbalance (e.g. 2% positive rate) combined with
-    class_weight="balanced", a fixed 0.5 decision threshold is almost
-    always wrong. The model's predict_proba output is a valid ranking
-    signal even when miscalibrated at the 0.5 cutoff — RandomForest
-    AUC-ROC=0.96 in our case proves the ranking is excellent, but
-    precision=0.17 at threshold=0.5 proves the cutoff is misplaced.
+    With severe class imbalance (e.g. 2% positive rate), a fixed 0.5
+    decision threshold is almost always wrong. The model's predict_proba
+    output is a valid ranking signal even when miscalibrated at the 0.5
+    cutoff — RandomForest AUC-ROC=0.96 in our case proves the ranking is
+    excellent, but precision=0.17 at threshold=0.5 proves the cutoff is
+    misplaced.
 
     The threshold is optimized using ONLY the concatenated CV fold
     validation sets — never the hold-out set. This prevents threshold
@@ -562,7 +562,7 @@ def _evaluate_anomaly_detection(
 
     Score extraction:
         decision_function() returns raw scores.
-        For IsolationForest/SVM: negative = anomalous.
+        For IsolationForest: negative = anomalous.
         Negated so higher score = more anomalous.
         Decision boundary is the model's natural zero point —
         no threshold optimization applies here (unsupervised).
