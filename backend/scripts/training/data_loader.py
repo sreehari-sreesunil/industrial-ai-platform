@@ -226,6 +226,10 @@ def load_training_data(task: str) -> TrainingDataset:
         window=FEATURE_CONFIG.rolling_window,
     )
 
+    telemetry = _add_availability_flags(
+        telemetry=telemetry,
+        maskable_sensors=FEATURE_CONFIG.MASKABLE_SENSORS,
+    )
     # Step 5: construct labels
     telemetry = _attach_failure_labels(
         telemetry=telemetry,
@@ -281,6 +285,23 @@ def load_training_data(task: str) -> TrainingDataset:
             y_train = y_train_raw
             hours_to_failure = hours_train_raw
 
+        # Sparse-sensor masking: simulate missing rotation/vibration sensors
+        # so the model learns to handle real-world facilities that lack them.
+        # Validated for failure_prediction (RandomForest) — see
+        # _apply_sparse_masking's docstring for the offline AUC evidence.
+        # Applied here to BOTH tasks for consistency; the anomaly_detection
+        # (IsolationForest) case is a reasoned extrapolation of the same
+        # mechanism, NOT separately validated — if anomaly_detection
+        # benchmark numbers look off after this change, check here first.
+        mask_rng = np.random.default_rng(FEATURE_CONFIG.mask_seed + fold_idx)
+        X_train = _apply_sparse_masking(
+            X_train=X_train,
+            feature_cols=feature_cols,
+            maskable_sensors=FEATURE_CONFIG.MASKABLE_SENSORS,
+            mask_probability=FEATURE_CONFIG.mask_probability,
+            rng=mask_rng,
+        )
+
         folds.append(CVFold(
             fold_index=fold_idx,
             X_train=X_train,
@@ -321,7 +342,7 @@ def load_training_data(task: str) -> TrainingDataset:
         folds=folds,
         X_holdout=X_holdout,
         y_holdout=y_holdout,
-        feature_names=feature_cols,   # full 16-feature list, not just sensor_names
+        feature_names=feature_cols,   # full 18-feature list, not just sensor_names
         task=task,
         n_folds=len(folds),
         positive_rate=overall_positive_rate,
@@ -574,3 +595,92 @@ def _build_rolling_features(
     )
 
     return telemetry
+
+def _add_availability_flags(
+    telemetry: pd.DataFrame,
+    maskable_sensors: tuple[str, ...],
+) -> pd.DataFrame:
+    """
+    Add {sensor}_available columns, set to 1.0 for every real record.
+
+    Every record in this dataset has every sensor genuinely present —
+    these flags exist so the feature vector has the correct shape and
+    semantics for masking (see _apply_sparse_masking) and for real-world
+    inference, where a facility might genuinely lack a sensor. At this
+    stage, before any masking is applied, every flag is honestly 1.0 —
+    masking later in the pipeline is what sets some of these to 0.0 for
+    a subset of TRAINING rows only.
+
+    Args:
+        telemetry:        Telemetry DataFrame with rolling features
+                          already computed.
+        maskable_sensors: Sensor names to add availability flags for.
+
+    Returns:
+        pd.DataFrame: Telemetry with {sensor}_available columns added.
+    """
+    telemetry = telemetry.copy()
+    for sensor in maskable_sensors:
+        telemetry[f"{sensor}_available"] = 1.0
+    return telemetry
+
+def _apply_sparse_masking(
+    X_train: np.ndarray,
+    feature_cols: list[str],
+    maskable_sensors: tuple[str, ...],
+    mask_probability: float,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """
+    Randomly mask sensors in TRAINING data to simulate missing hardware.
+
+    For each maskable sensor, independently per row, with probability
+    mask_probability: zero out every feature derived from that sensor
+    (raw value, rolling mean, rolling std, rate of change) and set its
+    _available flag to 0.0. The label is never touched — a masked row
+    is still genuinely positive or negative, we're only hiding
+    information the MODEL sees, not changing what happened.
+
+    Must run AFTER _build_rolling_features (rolling stats need complete,
+    unmasked history to compute correctly) and must only ever be applied
+    to X_train, never X_val or X_holdout — validation and hold-out must
+    reflect either ground truth or a deliberate, separately-run
+    force-missing scenario, never random training-style noise.
+
+    Validated offline: this is what allows the model to remain usable
+    (AUC ~0.79 vs ~0.52 without masking-training) when a sensor with
+    real importance (rotation) is later missing at inference time.
+
+    Args:
+        X_train:          Training feature matrix, already built from
+                          feature_cols (rolling features computed,
+                          availability flags present, all real values).
+        feature_cols:      Ordered feature names matching X_train's columns —
+                          used to find which column indices belong to
+                          each maskable sensor.
+        maskable_sensors:  Sensor names eligible for masking.
+        mask_probability:  Per-row, per-sensor probability of masking.
+        rng:               Seeded numpy random generator — caller controls
+                          the seed for reproducibility.
+
+    Returns:
+        np.ndarray: X_train with masking applied. New array, does not
+                   mutate the input in place.
+    """
+    X_train = X_train.copy()
+    n_rows = X_train.shape[0]
+
+    for sensor in maskable_sensors:
+        related_cols = [
+            i for i, name in enumerate(feature_cols)
+            if (name == sensor or name.startswith(f"{sensor}_"))
+            and not name.endswith("_available")
+        ]
+        available_idx = feature_cols.index(f"{sensor}_available")
+
+        mask_rows = rng.random(n_rows) < mask_probability
+        for col_idx in related_cols:
+            X_train[mask_rows, col_idx] = 0.0
+        X_train[mask_rows, available_idx] = 0.0
+
+    return X_train

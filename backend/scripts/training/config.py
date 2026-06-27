@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from typing import ClassVar
+
 
 # ---------------------------------------------------------------------------
 # Data generation
@@ -170,12 +172,40 @@ class FeatureConfig:
     use_rolling_std: bool = True
     use_rate_change: bool = True
 
+    # Probability that a given sensor is randomly masked (simulated missing)
+    # for a given training record. Currently scoped to rotation and vibration
+    # only — see MASKABLE_SENSORS below for which sensors this applies to.
+    #
+    # Validated offline (see docs — sparse-sensor robustness test):
+    #   rotation: model AUC collapses from 0.93 to 0.52 (near-random) when
+    #     forced missing without masking-training; recovers to 0.79 with it.
+    #   vibration: forcing it missing barely changes AUC (0.85 either way) —
+    #     consistent with vibration's near-zero feature importance, so
+    #     masking gives no measurable benefit there, but also no harm.
+    mask_probability: float = 0.15
+
+    # Sensors that support sparse/missing-sensor simulation during training.
+    # Scoped narrowly based on the offline validation above — NOT extended
+    # to voltage/pressure yet, since those haven't been tested. ClassVar,
+    # not a regular field: this is a fixed design constant, not something
+    # that should vary per FeatureConfig instance.
+    MASKABLE_SENSORS: ClassVar[tuple[str, ...]] = ("rotation", "vibration")
+    # Master seed for sparse-sensor masking (see mask_probability above).
+    # Each CV fold derives its own masking RNG as mask_seed + fold_index,
+    # so every fold sees a different masking pattern but the whole
+    # training run remains fully reproducible given the same seed.
+    mask_seed: int = 42
     @property
     def feature_names(self) -> list[str]:
         """
         Return the ordered feature name list the model expects.
 
         Order must be stable — sklearn models are position-sensitive.
+
+        Includes {sensor}_available flags for sensors in MASKABLE_SENSORS,
+        appended after all raw/rolling/rate features — these flags let
+        the model learn to distinguish "this sensor reads zero because
+        it's truly zero" from "this sensor is missing entirely."
         """
         names = []
         for sensor in self.sensors:
@@ -186,6 +216,8 @@ class FeatureConfig:
                 names.append(f"{sensor}_roll_std_{self.rolling_window}")
             if self.use_rate_change:
                 names.append(f"{sensor}_rate_change")
+        for sensor in self.MASKABLE_SENSORS:
+            names.append(f"{sensor}_available")
         return names
 
 
