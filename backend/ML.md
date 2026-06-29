@@ -154,6 +154,18 @@ These are real, currently-unresolved gaps, documented here so they're found by r
 
 5. **Sparse-sensor masking covers only `rotation` and `vibration`.** Voltage and pressure are untested for this mechanism; extending to them would need the same offline validation process described above before being trusted.
 
+6. **RUL estimation: the simplest approach wins, tested three ways.** Compared three RUL approaches on the same holdout machines, using MAE, a CMAPSS-style asymmetric score (penalizes predicting too MUCH remaining time more heavily than too little, since that's the dangerous direction — maintenance gets scheduled too late), and accuracy specifically within the decision-relevant zone (true RUL <= 48h, matching `FAILURE_HORIZON_HOURS`):
+
+   | Approach | Decision-zone MAE | Asymmetric score | Coverage |
+   |---|---|---|---|
+   | RandomForest regressor (direct hours-to-failure target, capped at 300h) | 189h | 4.50 | 100% |
+   | Naive: `(1 - failure_probability) * 300` from the existing failure_prediction classifier, no smoothing | **68h** | **3.61** | 100% |
+   | EWMA-smoothed version of the same classifier output (`app/ml/rul/ewma.py`) | 106h | 7.57 | 41% |
+
+   The naive, unsmoothed conversion of the classifier's own output won on every decision-relevant metric. The regressor performed worst exactly where it matters most — likely because its training target (hours-to-failure, capped at 300h) is dominated by examples far from failure (only 5.8% of holdout records fall within the 48h decision zone), so the model optimizes mostly for a range that isn't actionable. EWMA's smoothing, counter to the original design intent, made predictions *less* accurate than the raw classifier output it was smoothing — and produced no estimate at all for 59% of records (insufficient history, or `MIN_HISTORY_RECORDS`/stable-trend filtering). Reproducible in `scripts/training/experiments/inspect_rul_comparison.py`.
+
+   This was the first time `compute_ewma_rul()` and `create_asset_health()`/`get_health_history_by_asset()` were ever exercised end-to-end — both existed, fully implemented, with zero callers anywhere in the codebase before this investigation (see the health-pipeline wiring change). A real bug was found and fixed during this comparison: `compute_ewma_rul`'s internal `MAX_RUL_DAYS` cap (365 days) is on a completely different scale than this dataset's natural decision horizon; left uncapped, EWMA's "year-plus, can't estimate precisely" outputs (8760 hours) corrupted every aggregate metric until rescaled to match the other two approaches' 300h cap.
+
 ---
 
 ## Drift Detection Plan (not started)
