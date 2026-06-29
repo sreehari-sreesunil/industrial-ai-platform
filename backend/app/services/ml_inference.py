@@ -48,7 +48,6 @@ from app.crud import (
 )
 from app.crud import asset as crud_asset
 from app.ml import feature_engineering, model_loader, scoring
-from app.ml.rul import ewma
 from app.models.ml_prediction import MLPrediction
 
 logger = logging.getLogger(__name__)
@@ -57,6 +56,10 @@ logger = logging.getLogger(__name__)
 # health_scoring is excluded — it is a composite, not a direct inference.
 _INFERENCE_TASKS = ("anomaly_detection", "failure_prediction")
 
+# Cap for the naive RUL estimate in _maybe_update_health — see that
+# function's docstring. Matches the cap used in the RUL comparison
+# experiment (scripts/training/experiments/inspect_rul_comparison.py).
+RUL_CAP_HOURS = 300
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -247,7 +250,7 @@ def _run_inference_for_task(
             failure_probability=normalized_score,
             risk_level=risk_level,
         )
-        
+
     # Step 11 — compute confidence
     confidence = _compute_confidence(normalized_score)
 
@@ -306,9 +309,17 @@ def _maybe_update_health(
     sense for that task (anomaly_detection's score means something
     different: deviation from normal, not probability of failure).
 
-    Fetches this asset's health history, computes an EWMA-based RUL
-    estimate from it, then persists the new health record (with this
-    reading included, for the NEXT call's history).
+    rul_days is derived directly from failure_probability — NOT via
+    EWMA. A three-way comparison (RandomForest regressor vs. this
+    naive estimate vs. EWMA-smoothed, see
+    scripts/training/experiments/inspect_rul_comparison.py and ML.md
+    Known Limitations item 6) found this naive estimate beats both
+    alternatives on every decision-relevant metric: 68h vs 106h
+    (EWMA) vs 189h (regressor) decision-zone MAE, with 100% coverage
+    vs EWMA's 41%. ewma.compute_ewma_rul() remains available in
+    app/ml/rul/ewma.py for a future dataset where its smoothing
+    assumption (gradual degradation trend) might actually hold, but
+    it is not used here.
 
     Args:
         db:                   Database session.
@@ -323,20 +334,8 @@ def _maybe_update_health(
     health_score = (1.0 - failure_probability) * 100.0
     health_category = scoring.risk_level_to_health_category(risk_level)
 
-    # Fetch history BEFORE this new reading — EWMA needs prior readings
-    # to compute a trend; this reading becomes part of history for the
-    # NEXT call, not this one.
-    history_records = crud_health.get_health_history_by_asset(
-        db=db,
-        asset_id=asset_id,
-    )
-    health_history = [
-        (record.timestamp, record.health_score) for record in history_records
-    ]
-
-    rul_days, rul_confidence = ewma.compute_ewma_rul(
-        health_history=health_history,
-    )
+    rul_hours = (1.0 - failure_probability) * RUL_CAP_HOURS
+    rul_days = int(rul_hours / 24.0)
 
     crud_health.create_asset_health(
         db=db,
@@ -351,12 +350,11 @@ def _maybe_update_health(
 
     logger.info(
         "Health updated: asset_id=%d health_score=%.1f category=%s "
-        "rul_days=%s rul_confidence=%.2f",
+        "rul_days=%d",
         asset_id,
         health_score,
         health_category,
         rul_days,
-        rul_confidence,
     )
 
 
