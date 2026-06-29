@@ -165,6 +165,41 @@ def classify_risk(
 
     return level
 
+# Maps risk_level vocabulary (ascending severity, risk-framed) to
+# health_category vocabulary (health-framed) — same underlying score,
+# different mental model. Kept distinct deliberately: a health record
+# with health_category="low" would read backwards (low health vs. low
+# risk mean opposite things), so this is not a passthrough.
+_RISK_TO_HEALTH_CATEGORY = {
+    "low": "healthy",
+    "medium": "fair",
+    "high": "degraded",
+    "critical": "critical",
+}
+
+
+def risk_level_to_health_category(risk_level: str) -> str:
+    """
+    Convert a risk_level label to its health_category equivalent.
+
+    Args:
+        risk_level: One of "low", "medium", "high", "critical"
+            (RISK_LEVELS in this module).
+
+    Returns:
+        str: Health-framed category — "healthy", "fair", "degraded",
+            or "critical".
+
+    Raises:
+        ValueError: If risk_level is not recognized.
+    """
+    try:
+        return _RISK_TO_HEALTH_CATEGORY[risk_level]
+    except KeyError:
+        raise ValueError(
+            f"Unknown risk_level '{risk_level}'. "
+            f"Expected one of: {', '.join(RISK_LEVELS)}."
+        )
 
 def should_create_anomaly_event(
     score: float,

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -40,12 +41,14 @@ from sqlalchemy.orm import Session
 from app.crud import (
     ml_anomaly_event as crud_anomaly_event,
     ml_asset_baseline as crud_baseline,
+    ml_asset_health as crud_health,
     ml_model as crud_model,
     ml_prediction as crud_prediction,
     telemetry as crud_telemetry,
 )
 from app.crud import asset as crud_asset
 from app.ml import feature_engineering, model_loader, scoring
+from app.ml.rul import ewma
 from app.models.ml_prediction import MLPrediction
 
 logger = logging.getLogger(__name__)
@@ -233,6 +236,18 @@ def _run_inference_for_task(
         task=task,
     )
 
+    # Health scoring is a side effect of failure_prediction specifically —
+    # not a standalone task (see _INFERENCE_TASKS comment). anomaly_detection's
+    # normalized_score means "deviation from normal," not "probability of
+    # failure," so deriving health from it wouldn't be meaningful.
+    if task == "failure_prediction":
+        _maybe_update_health(
+            db=db,
+            asset_id=asset_id,
+            failure_probability=normalized_score,
+            risk_level=risk_level,
+        )
+        
     # Step 11 — compute confidence
     confidence = _compute_confidence(normalized_score)
 
@@ -277,6 +292,72 @@ def _run_inference_for_task(
 
     return prediction
 
+def _maybe_update_health(
+    db: Session,
+    asset_id: int,
+    failure_probability: float,
+    risk_level: str,
+) -> None:
+    """
+    Derive and persist a health record from a failure_prediction result.
+
+    Called only when task == "failure_prediction" — health score is
+    defined as the inverse of failure probability, which only makes
+    sense for that task (anomaly_detection's score means something
+    different: deviation from normal, not probability of failure).
+
+    Fetches this asset's health history, computes an EWMA-based RUL
+    estimate from it, then persists the new health record (with this
+    reading included, for the NEXT call's history).
+
+    Args:
+        db:                   Database session.
+        asset_id:             Asset this health record belongs to.
+        failure_probability:  The failure_prediction task's normalized
+                              score (0-1, higher = more likely to fail).
+        risk_level:           Already-computed risk level for this score
+                              (from scoring.classify_risk), reused here
+                              via risk_level_to_health_category rather
+                              than recomputed.
+    """
+    health_score = (1.0 - failure_probability) * 100.0
+    health_category = scoring.risk_level_to_health_category(risk_level)
+
+    # Fetch history BEFORE this new reading — EWMA needs prior readings
+    # to compute a trend; this reading becomes part of history for the
+    # NEXT call, not this one.
+    history_records = crud_health.get_health_history_by_asset(
+        db=db,
+        asset_id=asset_id,
+    )
+    health_history = [
+        (record.timestamp, record.health_score) for record in history_records
+    ]
+
+    rul_days, rul_confidence = ewma.compute_ewma_rul(
+        health_history=health_history,
+    )
+
+    crud_health.create_asset_health(
+        db=db,
+        asset_id=asset_id,
+        timestamp=datetime.now(timezone.utc),
+        health_score=health_score,
+        health_category=health_category,
+        failure_probability=failure_probability,
+        rul_days=rul_days,
+        contributing_factors=None,
+    )
+
+    logger.info(
+        "Health updated: asset_id=%d health_score=%.1f category=%s "
+        "rul_days=%s rul_confidence=%.2f",
+        asset_id,
+        health_score,
+        health_category,
+        rul_days,
+        rul_confidence,
+    )
 
 
 def _score_with_model(
