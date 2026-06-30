@@ -23,3 +23,10 @@ Thumbs.db
 # IDE 
 .vscode/
 .idea/
+
+# ML training data (large files, not committed — see scripts/training/data/README.md)
+scripts/training/data/*.csv
+
+# ML model artifacts (large, regeneratable via run_training.py --force —
+# not committed, same reasoning as the training CSVs above)
+artifacts/

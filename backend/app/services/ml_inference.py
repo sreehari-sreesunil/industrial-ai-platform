@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -212,10 +212,29 @@ def _run_inference_for_task(
     # Step 6 — fetch baselines for z-score computation
     baselines = crud_baseline.get_baselines_by_asset(db=db, asset_id=asset_id)
 
+    # Step 6.5 — fetch recent telemetry history for rolling feature
+    # computation. build_feature_vector needs a window of readings,
+    # not just the latest one, to compute genuine rolling mean/std/
+    # rate_change features matching what the model was trained on.
+    history_start = latest_telemetry.timestamp - timedelta(hours=24)
+    telemetry_history_records = crud_telemetry.get_telemetry_by_asset(
+        db=db,
+        asset_id=asset_id,
+        start_time=history_start,
+        end_time=latest_telemetry.timestamp,
+    )
+    # Sort oldest-first explicitly — build_feature_vector requires this
+    # ordering and we don't assume the CRUD query already guarantees it.
+    telemetry_history = [
+        record.payload
+        for record in sorted(telemetry_history_records, key=lambda r: r.timestamp)
+        if record.payload
+    ]
+
     # Step 7 — build feature vector
     feature_names: list[str] = json.loads(ml_model.feature_names)
     feature_vector = feature_engineering.build_feature_vector(
-        telemetry_values=telemetry_values,
+        telemetry_history=telemetry_history,
         baselines=baselines,
         feature_names=feature_names,
     )
@@ -306,7 +325,7 @@ def _maybe_update_health(
 
     Called only when task == "failure_prediction" — health score is
     defined as the inverse of failure probability, which only makes
-    sense for that task (anomaly_detection's score means something
+    sense for that entask (anomaly_detection's score means something
     different: deviation from normal, not probability of failure).
 
     rul_days is derived directly from failure_probability — NOT via

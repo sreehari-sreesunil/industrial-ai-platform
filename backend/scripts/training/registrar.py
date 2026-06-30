@@ -111,17 +111,29 @@ def register_model(
             f"Check TASK_MODEL_MAP in config.py."
         )
 
-    # Infer model_type from pipeline's final step
-    model_type = type(pipeline.named_steps["model"]).__name__
-    if model_type != expected_model_type:
+    # Infer the sklearn class name from the pipeline's final step, but
+    # ALWAYS use TASK_MODEL_MAP's canonical name for storage — the raw
+    # sklearn class name (e.g. "RandomForestClassifier") is an
+    # implementation detail that doesn't match this system's naming
+    # convention used everywhere else (TASK_MODEL_MAP, trainer.py,
+    # scoring.py's _DECISION_FUNCTION_MODELS/_PROBA_MODELS). Storing
+    # the raw class name instead of the canonical one previously broke
+    # inference: _score_with_model() and normalize_score() do exact
+    # string matches against "RandomForest"/"IsolationForest" with no
+    # fuzzy matching, so a stored "RandomForestClassifier" would raise
+    # ValueError("Unknown model_type") on every real inference call.
+    sklearn_class_name = type(pipeline.named_steps["model"]).__name__
+    if sklearn_class_name != expected_model_type:
         logger.warning(
-            "Pipeline model_type '%s' does not match TASK_MODEL_MAP "
-            "expectation '%s' for task=%s. Proceeding with '%s'.",
-            model_type,
+            "Pipeline sklearn class '%s' does not match TASK_MODEL_MAP "
+            "canonical name '%s' for task=%s. Storing canonical name "
+            "'%s', not the raw sklearn class name.",
+            sklearn_class_name,
             expected_model_type,
             task,
-            model_type,
+            expected_model_type,
         )
+    model_type = expected_model_type
 
     # Step 2 — resolve next version number
     version = _resolve_next_version(

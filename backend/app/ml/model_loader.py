@@ -34,7 +34,9 @@ def load_model(model_id: int, artifact_path: str) -> Any:
 
     Args:
         model_id: ML model identifier — used as the cache key.
-        artifact_path: Filesystem path to the serialized .joblib file.
+        artifact_path: URI-style path to the serialized .joblib file
+            (e.g. local://artifacts/model.joblib). Resolved via
+            _resolve_local_path() before any filesystem access.
 
     Returns:
         Any: Deserialized sklearn, XGBoost, or compatible model object.
@@ -49,8 +51,8 @@ def load_model(model_id: int, artifact_path: str) -> Any:
         logger.debug("Model %d served from cache", model_id)
         return _model_cache[model_id]
 
-    # Validate artifact path before attempting to load
-    path = Path(artifact_path)
+    # Resolve the local:// URI to a real filesystem path
+    path = _resolve_local_path(artifact_path)
     if not path.exists():
         raise FileNotFoundError(
             f"Model artifact not found at path: {artifact_path}. "
@@ -106,3 +108,35 @@ def get_cached_model_ids() -> list[int]:
     """
 
     return list(_model_cache.keys())
+
+def _resolve_local_path(artifact_path: str) -> Path:
+    """
+    Resolve a local:// URI-style artifact path to a real filesystem Path.
+
+    Mirrors scripts/training/registrar.py's _resolve_local_path() —
+    the two functions must stay in agreement, since registrar.py writes
+    these paths and this function reads them. Previously, load_model()
+    had no URI-scheme handling at all (its own docstring said
+    "artifact_path: Filesystem path", contradicting registrar.py's
+    documented local:// scheme) — every real attempt to load a deployed
+    model failed with FileNotFoundError, undiscovered until the first
+    time a model was ever actually registered and inference attempted
+    against it.
+
+    Args:
+        artifact_path: URI-style path (e.g. local://artifacts/model.joblib).
+
+    Returns:
+        Path: Resolved filesystem path.
+
+    Raises:
+        ValueError: If the URI scheme is not local://.
+    """
+    if not artifact_path.startswith("local://"):
+        raise ValueError(
+            f"Unsupported URI scheme in artifact_path: '{artifact_path}'. "
+            f"Only local:// is supported."
+        )
+    relative_path = artifact_path.removeprefix("local://")
+    backend_root = Path(__file__).parent.parent.parent
+    return backend_root / relative_path
