@@ -169,9 +169,20 @@ These are real, currently-unresolved gaps, documented here so they're found by r
 7. **Dormant synthetic data-generation system in `scripts/training/config.py`.** `OperatingEnvelope` and `AssetDataConfig` (lines ~29-94) define a complete synthetic telemetry generator for all three asset types — `total_records`, `normal_fraction`/`degradation_fraction`/`failure_fraction` phases, per-sensor operating envelopes (mean/std/failure_threshold) for compressor, pump, and motor — with zero callers anywhere in the codebase (`grep -rn "AssetDataConfig|ASSET_DATA_CONFIGS|OperatingEnvelope"` outside this file's own definition returns nothing). This is almost certainly leftover scaffolding from before the project adopted the real Azure Predictive Maintenance dataset (see the original project handoff's documented "scope change" — synthetic data was explicitly rejected in favor of real data). Notably, this is the only place in the codebase where `pump` and `motor` have any associated numeric parameters at all — but they're synthetic generation envelopes, not real telemetry, so they do not resolve item 4 (no `pump`/`motor` `asset_types` row or real data exists). Investigated while scoping drift detection (hypothesized this might be a drift-simulation tool, since `degradation_rate` sounded relevant — confirmed it is not; it's a training-data generator unrelated to drift, which requires comparing two real distributions, not simulating one).
 ---
 
-## Drift Detection Plan (not started)
+## Drift Detection (partially built)
 
-Models trained on historical data degrade as equipment ages and operating conditions shift. Drift monitoring would detect when a deployed model's input distribution has moved away from its training distribution. Planned approach: PSI (Population Stability Index) and statistical (KS-test) drift detection on rolling windows, with EvidentlyAI integration considered for automated reporting. None of this has been implemented — flagged here as a real gap, not a near-term plan.
+Models trained on historical data degrade as equipment ages and operating conditions shift. Drift monitoring detects when a deployed model's input distribution has moved away from its training distribution.
+
+**PSI (Population Stability Index) is implemented and validated** (`app/ml/drift.py`: `calculate_psi`, `classify_drift_severity`). PSI was chosen as a defensible, well-established, easily interpretable method among several valid alternatives (KL divergence, Kolmogorov-Smirnov tests, Wasserstein distance) — not because it's uniquely correct. Standard severity thresholds: PSI < 0.10 none, 0.10–0.25 moderate, ≥0.25 significant.
+
+Validated two ways against the real Azure dataset (`scripts/training/experiments/inspect_drift_detection.py`):
+- **Negative control**: real `train_pool` (80%) vs. real `holdout` (20%) — no actual drift, both from the same underlying process. All four sensors: PSI ≤ 0.0003, correctly classified `"none"`.
+- **Positive control**: `holdout` vs. a copy with `rotation`'s mean shifted +10% (simulating realistic sensor calibration drift, not an extreme failure). `rotation`: PSI = 0.6128, correctly classified `"significant"`. The three untouched sensors stayed at PSI ≈ 0.0000, confirming PSI is specific to the sensor that actually drifted, not reacting to incidental sampling differences.
+
+**Not yet built:**
+- Not wired into the live inference pipeline — no scheduled or triggered job computes PSI against production telemetry yet. Open design question: what serves as the "reference" distribution in production (the original training set? a rolling prior window?) and how often does the check run? Same class of decision as the abandoned automatic-baseline-refresh question (see the per-machine-baseline limitation) — needs the same kind of cost/infrastructure tradeoff analysis before committing to an approach.
+- Kolmogorov-Smirnov tests and EvidentlyAI integration remain unimplemented, as originally planned.
+- No retraining trigger exists even if drift were detected — `classify_drift_severity` returning `"significant"` does not currently cause anything to happen.
 
 ---
 
